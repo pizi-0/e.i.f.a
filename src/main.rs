@@ -16,9 +16,6 @@ fn main() {
 
     println!("APK path provided: {}", apk_path);
     println!("Output path for extracted images: {}", output_path);
-
-    // For demonstration, we'll set this to false.
-    // In a real app, you might get this from command-line arguments.
    
     get_app_icon(apk_path, output_path);
 }
