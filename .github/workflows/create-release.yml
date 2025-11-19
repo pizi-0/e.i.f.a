@@ -30,6 +30,13 @@ jobs:
       - name: List downloaded artifacts
         run: ls -R artifacts/
 
+      - name: Rename artifacts for release
+        run: |
+          mv artifacts/eifa-linux-x86_64/eifa artifacts/eifa-linux-x86_64
+          mv artifacts/eifa-macos-x86_64/eifa artifacts/eifa-macos-x86_64
+          mv artifacts/eifa-macos-aarch64/eifa artifacts/eifa-macos-aarch64
+          mv artifacts/eifa-windows-x86_64/eifa.exe artifacts/eifa-windows-x86_64.exe
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -37,7 +44,7 @@ jobs:
           name: Release ${{ github.event.inputs.version }}
           body: "Official release for version ${{ github.event.inputs.version }}"
           files: |
-            artifacts/eifa-linux-x86_64/eifa
-            artifacts/eifa-macos-x86_64/eifa
-            artifacts/eifa-macos-aarch64/eifa
-            artifacts/eifa-windows-x86_64/eifa.exe
+            artifacts/eifa-linux-x86_64
+            artifacts/eifa-macos-x86_64
+            artifacts/eifa-macos-aarch64
+            artifacts/eifa-windows-x86_64.exe
