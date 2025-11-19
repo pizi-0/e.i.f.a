@@ -1,0 +1,39 @@
+name: Create GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version tag for this release (e.g., v1.0.0)'
+        required: true
+        type: string
+      build_run_id:
+        description: 'The run ID of the "Release Build" workflow to get artifacts from'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a release
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.inputs.build_run_id }}
+          path: artifacts/
+
+      - name: List downloaded artifacts
+        run: ls -R artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          body: "Official release for version ${{ github.event.inputs.version }}"
+          files: |
+            artifacts/eifa-linux-x86_64/eifa
+            artifacts/eifa-macos-x86_64/eifa
+            artifacts/eifa-windows-x86_64/eifa.exe
