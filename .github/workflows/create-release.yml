@@ -36,4 +36,5 @@ jobs:
           files: |
             artifacts/eifa-linux-x86_64/eifa
             artifacts/eifa-macos-x86_64/eifa
+            artifacts/eifa-macos-aarch64/eifa
             artifacts/eifa-windows-x86_64/eifa.exe
