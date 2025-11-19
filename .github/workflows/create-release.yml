@@ -16,8 +16,8 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     permissions:
-      actions: read # Required to download artifacts from other workflows
-      contents: write # Required to create a release
+      actions: read 
+      contents: write 
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
