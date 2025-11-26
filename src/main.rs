@@ -2,6 +2,8 @@ use std::env;
 use std::fs;
 use std::path::Path;
 use apk_info::Apk;
+use std::fs::File;
+use zip::ZipArchive;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -29,39 +31,54 @@ fn get_app_icon(apk_path: &str, output_dir: &str) {
         }
     };
     let package_name = apk.get_package_name().unwrap_or_default();
+    
+    // Prioritize searching for the highest resolution ic_launcher.png first.
+    println!("Searching for the highest resolution ic_launcher.png...");
+    const DENSITY_ORDER: &[&str] = &["xxxhdpi", "xxhdpi", "xhdpi", "hdpi", "mdpi"];
+    
+    let file = File::open(apk_path).expect("Failed to open APK file");
+    let mut archive = ZipArchive::new(file).expect("Failed to read APK as zip");
+    
+    let primary_search_result = DENSITY_ORDER.iter().find_map(|density| {
+        // Find a file entry that starts with the mipmap density folder and ends with the icon name
+        for i in 0..archive.len() {
+            let mut file_entry = archive.by_index(i).ok()?;
+            let file_name = file_entry.name().to_owned(); 
+    
+            let prefix = format!("res/mipmap-{}", density);
+            if file_name.starts_with(&prefix) && file_name.ends_with("/ic_launcher.png") {
+                // Found a match, now read its contents
+                let mut buffer = Vec::new();
+                if std::io::copy(&mut file_entry, &mut buffer).is_ok() {
+                    println!("Found ic_launcher.png in: {}", file_name);
+                    return Some(buffer);
+                }
+            }
+        }
+        None  
+    });
 
-    let app_icon_path = match apk.get_application_icon() {
-        Some(path) => path,
-        None => {
-            eprintln!("No application icon path found in APK");
+    let icon_data = primary_search_result.unwrap_or_else(|| {
+        // Fallback to the icon path from the manifest if ic_launcher.png is not found.
+        println!("No ic_launcher.png found. Falling back to manifest icon path.");
+        let app_icon_path = apk.get_application_icon()
+            .expect("No application icon path found in APK manifest.");
+
+        if app_icon_path.ends_with(".xml") {
+            eprintln!("Manifest icon is an XML file, and no suitable PNG fallback was found.");
             std::process::exit(1);
         }
-    };
 
-    let icon_data = if app_icon_path.ends_with(".xml") {
-        // Adaptive icon detected, search for a fallback PNG.
-        println!("Adaptive icon detected. Searching for a fallback PNG icon.");
-        const DENSITY_ORDER: &[&str] = &["xxxhdpi", "xxhdpi", "xhdpi", "hdpi", "mdpi"];
-
-        let (data, _) = DENSITY_ORDER.iter().find_map(|density| {
-            let fallback_path = format!("res/mipmap-{}/ic_launcher.png", density);
-            apk.read(&fallback_path).ok()
-        }).expect("No suitable PNG fallback icon found for adaptive icon.");
-        data
-    } else {
-        let (data, _) = apk.read(&app_icon_path).unwrap_or_else(|e| {
-            eprintln!("Cannot read icon file '{}': {}", app_icon_path, e);
-            std::process::exit(1);
-        });
-        data
-    };
+        println!("Found non-XML icon in manifest: {}", app_icon_path);
+        let (data, _) = apk.read(&app_icon_path).expect("Failed to read manifest icon file");
+        data 
+    });
 
     let output_file_path = Path::new(output_dir).join(format!("{}.png", package_name));
     if let Err(e) = fs::write(&output_file_path, &icon_data) {
         eprintln!("Failed to write icon to '{}': {}", output_file_path.display(), e);
         std::process::exit(1);
     };
-
     println!("Package name: {}", package_name);
     println!("Icon successfully extracted to: {}", output_file_path.display());
 }

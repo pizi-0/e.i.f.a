@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 apk-info = "1.0.8"
+zip = "0.6"
